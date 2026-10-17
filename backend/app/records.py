@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv, io, random, uuid
 from datetime import date, timedelta
 from pathlib import Path
+from typing import Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import PlainTextResponse
@@ -62,7 +63,7 @@ def list_records(aid: str):
 
 @router.post("/aircraft/{aid}/records")
 async def add_record(aid: str, type: str = Form(...), description: str = Form(...), fault_code: str = Form(""),
-                     hours_spent: float = Form(0), photo: UploadFile | None = File(None)):
+                     hours_spent: float = Form(0), photo: Optional[UploadFile] = File(None)):
     _ac(aid)
     url = None
     if photo and photo.filename:
