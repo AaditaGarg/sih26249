@@ -49,3 +49,18 @@ def test_decision_audit():
         r = client.post(f"{A}/recommendations/{plan[0]['aircraft_id']}/decision", json={"decision": "approve"})
         assert r.status_code == 200
         assert client.get(f"{A}/audit").json()[-1]["action"] == "recommendation_approve"
+
+
+def test_records_photo_and_ingest():
+    rs = client.get(f"{A}/aircraft/AC-001/records").json()
+    assert len(rs) >= 3
+    png = b"\x89PNG\r\n\x1a\n" + b"0" * 20
+    r = client.post(f"{A}/aircraft/AC-001/records", data={"type": "Snag report", "description": "crack"},
+                    files={"photo": ("x.png", png, "image/png")})
+    assert r.status_code == 200 and r.json()["photo_url"].startswith("/uploads/")
+    assert client.post(f"{A}/aircraft/AC-001/records", data={"type": "t", "description": "d"},
+                       files={"photo": ("x.txt", b"hi", "text/plain")}).status_code == 400
+    csv_ok = b"aircraft_id,date,type,fault_code,description,hours_spent\nAC-002,2026-01-05,Snag report,X,desc,3\nAC-999,2026-01-05,Snag report,X,desc,3\n"
+    rep = client.post(f"{A}/ingest/maintenance_records", files={"file": ("r.csv", csv_ok, "text/csv")}).json()
+    assert rep["accepted"] == 1 and rep["rejected"] == 1
+    assert "task" in client.get(f"{A}/aircraft/AC-001/workorder").json()

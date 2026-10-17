@@ -4,7 +4,9 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import optimizer, simulator
+from fastapi.staticfiles import StaticFiles
+
+from . import optimizer, records, simulator
 from .schemas import Decision, GenerateRequest, PlanParams, SimulateRequest
 from .state import CYCLES_PER_DAY, HORIZON_FOR_RISK_DAYS, state
 
@@ -12,11 +14,21 @@ app = FastAPI(title="SustainIQ API", version="0.1.0",
               description="Predictive maintenance & fleet availability decision support (SIH26249). Synthetic data only.")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 API = "/api/v1"
+app.include_router(records.router)
+app.mount("/uploads", StaticFiles(directory=records.UPLOADS), name="uploads")
+
+
+@app.on_event("startup")
+def warm_up():
+    with state.lock:
+        if not state.aircraft:
+            state.generate(40, 42)
 
 
 def _need_fleet():
-    if not state.aircraft:
-        state.generate(40, 42)
+    with state.lock:
+        if not state.aircraft:
+            state.generate(40, 42)
 
 
 def _params(req: PlanParams, n: int):

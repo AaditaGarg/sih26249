@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import threading
 from datetime import datetime, timezone
 
 from . import synth
@@ -22,13 +23,21 @@ class State:
         self.resources: dict = {}
         self.last_plan: dict | None = None
         self.audit: list[dict] = []
+        self.lock = threading.RLock()
+        self.gen = 0
 
     def ensure_model(self) -> RULModel:
-        if self.model is None:
-            self.model = RULModel().fit()
-        return self.model
+        with self.lock:
+            if self.model is None:
+                self.model = RULModel().fit()
+            return self.model
 
     def generate(self, n: int, seed: int):
+        with self.lock:
+            self._generate(n, seed)
+            self.gen += 1
+
+    def _generate(self, n: int, seed: int):
         model = self.ensure_model()
         raw = synth.generate_fleet_raw(n, seed)
         lo, med, hi = model.predict([r["features"] for r in raw])

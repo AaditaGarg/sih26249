@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
+import Aircraft from "./Aircraft.jsx";
+import Data from "./Data.jsx";
 
 const BAND = { Critical: "#B83A24", High: "#E08A1E", Medium: "#C9AE3A", Low: "#6F8F72" };
 const pct = (x) => (x * 100).toFixed(1) + "%";
-const TABS = ["Fleet", "Maintenance queue", "Planner", "Simulator"];
+const TABS = ["Fleet", "Maintenance queue", "Planner", "Simulator", "Aircraft records", "Data and uploads"];
 
 function RulBar({ a }) {
   const S = 140, L = (v) => (v / S) * 100 + "%";
@@ -179,6 +181,8 @@ export default function App() {
           </>)}
         </section>
       )}
+      {tab === 4 && ac.length > 0 && <Aircraft ac={ac} />}
+      {tab === 5 && <Data onChange={load} />}
     </div>
   );
 }
